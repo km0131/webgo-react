@@ -1,65 +1,285 @@
-import Image from "next/image";
+"use client";
 
-export default function Home() {
+import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
+
+// =================================================================
+// Step 1: Username Input Component
+// =================================================================
+interface LoginStep1Props {
+  onUserChecked: (username: string, imageList: string[], imageNames: string[]) => void;
+}
+
+function LoginStep1({ onUserChecked }: LoginStep1Props) {
+  const [username, setUsername] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
+
+  const handleUserCheck = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!username.trim()) {
+      setErrorMessage("なまえをいれてね。");
+      return;
+    }
+    setIsLoading(true);
+    setErrorMessage("");
+
+    try {
+      const response = await fetch('/api/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ inputUsername: username }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.status === "next_step") {
+        onUserChecked(username, data.img_list, data.img_name);
+      } else {
+        setErrorMessage(data.error || "そのなまえのひとはいないみたい。もういちどかくにんしてね。");
+      }
+    } catch (err) {
+      setErrorMessage("えらーがはっせいしました。");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+    <div className="min-h-screen flex items-center justify-center bg-[#f0f9ff] p-4 font-sans">
+      <div className="w-full max-w-md p-8 bg-white rounded-3xl shadow-lg">
+        <h3 className="text-center text-3xl font-bold text-[#0ea5e9] mb-6 tracking-tight">👋 ろぐいん</h3>
+
+        {errorMessage && (
+          <p className="text-red-500 border border-red-300 bg-red-50 p-3 mb-4 text-sm rounded-xl text-center">
+            {errorMessage}
           </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
+        )}
+
+        <form onSubmit={handleUserCheck}>
+          <div className="mb-5">
+            <label className="block mb-2 text-sm font-semibold text-slate-600">
+              😊 なまえ
+            </label>
+            <input
+              type="text"
+              className="w-full px-4 py-3 text-base border-2 border-slate-200 rounded-xl focus:border-sky-300 focus:outline-none focus:ring-4 focus:ring-sky-100 transition-all"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              required
+              disabled={isLoading}
             />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+          </div>
+
+          <button
+            type="submit"
+            disabled={isLoading}
+            className="w-full bg-sky-500 hover:bg-sky-600 text-white font-bold py-4 rounded-full transition-all transform hover:scale-105 shadow-lg disabled:opacity-50 disabled:scale-100"
           >
-            Documentation
+            {isLoading ? "かくにんちゅう..." : "つぎへ →"}
+          </button>
+        </form>
+
+        <hr className="my-6 border-slate-200" />
+
+        <div className="text-center text-sm space-y-2">
+          <a href="#" className="font-semibold text-slate-400 cursor-not-allowed">
+            ぱすわーどをわすれたばあい
           </a>
+          <Link href="/signup" className="block font-semibold text-sky-500 hover:text-sky-600 hover:underline">
+            あたらしく とうろくする
+          </Link>
         </div>
-      </main>
+      </div>
     </div>
   );
+}
+
+
+// =================================================================
+// Step 2: Image Password Component
+// =================================================================
+interface LoginStep2Props {
+  username: string;
+  imageList: string[];
+  imageNames: string[];
+  onBack: () => void;
+}
+
+function LoginStep2({ username, imageList, imageNames, onBack }: LoginStep2Props) {
+  const [selectedIndices, setSelectedIndices] = useState<number[]>([]);
+  const [statusMessage, setStatusMessage] = useState({ text: "えらんだ どうぶつ: 0/3", color: "text-slate-500" });
+  const [isLoading, setIsLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
+
+  const toggleImageSelection = (index: number) => {
+    if (selectedIndices.includes(index) || isLoading || successMessage) {
+      if (!isLoading && !successMessage) {
+        setSelectedIndices(selectedIndices.filter(i => i !== index));
+      }
+    } else if (selectedIndices.length < 3) {
+      setSelectedIndices([...selectedIndices, index]);
+    }
+  };
+
+  useEffect(() => {
+    const count = selectedIndices.length;
+    if (count === 3) {
+      setStatusMessage({ text: "3つえらんだね！OK！", color: "text-green-500" });
+    } else {
+      setStatusMessage({ text: `えらんだしゃしん: ${count}/3`, color: "text-slate-500" });
+    }
+  }, [selectedIndices]);
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (selectedIndices.length !== 3) {
+      setErrorMessage("しゃしんを3つえらんでね。");
+      return;
+    }
+    
+    setIsLoading(true);
+    setErrorMessage("");
+    setSuccessMessage("");
+
+    try {
+      const sortedIndices = [...selectedIndices].sort((a, b) => a - b);
+      const sortedLabels = sortedIndices.map(index => imageNames[index]);
+      const loginData = {
+          username: username,
+          images: sortedLabels
+      };
+      
+      const response = await fetch('/api/login_registrer', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(loginData),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+          throw new Error(result.error || 'ろぐいんにしっぱいしました。');
+      }
+
+      setSuccessMessage('ろぐいんしました！がめんがかわるまでまってね。');
+      
+      // Redirect to home after a short delay
+      setTimeout(() => {
+          window.location.href = '/';
+      }, 2000);
+
+    } catch (err) {
+      setErrorMessage(err instanceof Error ? err.message : 'えらーがはっせいしました。');
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-[#f0f9ff] p-4 font-sans">
+      <div className="w-full max-w-md p-8 bg-white rounded-3xl shadow-lg">
+        <h3 className="text-center text-3xl font-bold text-[#0ea5e9] mb-2 tracking-tight">ひみつのパスワード</h3>
+        <p className="text-center text-slate-500 mb-6">とうろくした しゃしん 3つえらんでね</p>
+        
+        {errorMessage && (
+          <p className="text-red-500 border border-red-300 bg-red-50 p-3 mb-4 text-sm rounded-xl text-center">
+            {errorMessage}
+          </p>
+        )}
+        {successMessage && (
+          <p className="text-green-600 border border-green-300 bg-green-50 p-3 mb-4 text-sm rounded-xl text-center">
+            {successMessage}
+          </p>
+        )}
+
+        <form onSubmit={handleLogin}>
+          <div className="grid grid-cols-3 gap-3 sm:gap-4 mb-4">
+            {imageList.map((path, index) => (
+              <div key={index} className="flex justify-center">
+                <label className={`relative cursor-pointer group w-full ${isLoading || successMessage ? 'cursor-not-allowed' : ''}`}>
+                  <input
+                    type="checkbox"
+                    className="absolute opacity-0 w-0 h-0"
+                    checked={selectedIndices.includes(index)}
+                    onChange={() => toggleImageSelection(index)}
+                    disabled={isLoading || !!successMessage}
+                  />
+                  <img
+                    src={path}
+                    alt={`img-pw-${index}`}
+                    className={`w-full aspect-square object-contain p-1 rounded-2xl border-4 transition-all duration-200 
+                      ${selectedIndices.includes(index) 
+                        ? "border-sky-400 ring-4 ring-sky-100 scale-105" 
+                        : "border-slate-200 group-hover:border-sky-300 group-hover:scale-105"
+                      }
+                      ${isLoading || successMessage ? 'opacity-50' : ''}
+                    `}
+                  />
+                </label>
+              </div>
+            ))}
+          </div>
+
+          <p className={`text-center font-semibold mb-5 min-h-[1.5rem] ${statusMessage.color}`}>
+            {statusMessage.text}
+          </p>
+
+          <button
+            type="submit"
+            disabled={selectedIndices.length !== 3 || isLoading || !!successMessage}
+            className="w-full bg-[#34d399] hover:bg-[#10b981] text-white font-bold py-4 rounded-full transition-all transform hover:scale-105 shadow-lg disabled:opacity-50 disabled:scale-100"
+          >
+            {isLoading ? "ろぐいんちゅう..." : "ろぐいん！"}
+          </button>
+        </form>
+
+        <hr className="my-6 border-slate-200" />
+        <div className="text-center">
+          <button 
+            onClick={onBack}
+            className="text-sm font-semibold text-sky-500 hover:text-sky-600 hover:underline disabled:text-slate-400 disabled:cursor-not-allowed disabled:no-underline"
+            disabled={isLoading || !!successMessage}
+          >
+            ← なまえのにゅうりょくにもどる
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
+// =================================================================
+// Main Page Component (Controller)
+// =================================================================
+interface LoginData {
+  username: string;
+  imageList: string[];
+  imageNames: string[];
+}
+
+export default function LoginPage() {
+    const [step, setStep] = useState(1);
+    const [loginData, setLoginData] = useState<LoginData | null>(null);
+
+    const handleUserChecked = (username: string, imageList: string[], imageNames: string[]) => {
+        setLoginData({ username, imageList, imageNames });
+        setStep(2);
+    };
+
+    const handleBackToStep1 = () => {
+        setLoginData(null);
+        setStep(1);
+    }
+
+    if (step === 1) {
+        return <LoginStep1 onUserChecked={handleUserChecked} />; 
+    }
+    
+    if (step === 2 && loginData) {
+        return <LoginStep2 {...loginData} onBack={handleBackToStep1} />;
+    }
+
+    return null; // Default fallback
 }
