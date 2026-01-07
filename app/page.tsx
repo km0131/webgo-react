@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
 // =================================================================
 // Step 1: Username Input Component
@@ -107,6 +108,7 @@ interface LoginStep2Props {
 }
 
 function LoginStep2({ username, imageList, imageNames, onBack }: LoginStep2Props) {
+  const router = useRouter();
   const [selectedIndices, setSelectedIndices] = useState<number[]>([]);
   const [statusMessage, setStatusMessage] = useState({ text: "えらんだ どうぶつ: 0/3", color: "text-slate-500" });
   const [isLoading, setIsLoading] = useState(false);
@@ -138,7 +140,7 @@ function LoginStep2({ username, imageList, imageNames, onBack }: LoginStep2Props
       setErrorMessage("しゃしんを3つえらんでね。");
       return;
     }
-    
+
     setIsLoading(true);
     setErrorMessage("");
     setSuccessMessage("");
@@ -147,31 +149,27 @@ function LoginStep2({ username, imageList, imageNames, onBack }: LoginStep2Props
       const sortedIndices = [...selectedIndices].sort((a, b) => a - b);
       const sortedLabels = sortedIndices.map(index => imageNames[index]);
       const loginData = {
-          username: username,
-          images: sortedLabels
+        username: username,
+        images: sortedLabels
       };
-      
+
       const response = await fetch('/api/login_registrer', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(loginData),
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(loginData),
       });
 
       const result = await response.json();
 
-      if (!response.ok) {
-          throw new Error(result.error || 'ろぐいんにしっぱいしました。');
+      if (response.ok && result.password) {
+        router.push('/signup');
+      } else {
+        setErrorMessage("パスワードが違う");
+        setIsLoading(false);
       }
 
-      setSuccessMessage('ろぐいんしました！がめんがかわるまでまってね。');
-      
-      // Redirect to home after a short delay
-      setTimeout(() => {
-          window.location.href = '/';
-      }, 2000);
-
     } catch (err) {
-      setErrorMessage(err instanceof Error ? err.message : 'えらーがはっせいしました。');
+      setErrorMessage('えらーがはっせいしました。');
       setIsLoading(false);
     }
   };
@@ -181,7 +179,7 @@ function LoginStep2({ username, imageList, imageNames, onBack }: LoginStep2Props
       <div className="w-full max-w-md p-8 bg-white rounded-3xl shadow-lg">
         <h3 className="text-center text-3xl font-bold text-[#0ea5e9] mb-2 tracking-tight">ひみつのパスワード</h3>
         <p className="text-center text-slate-500 mb-6">とうろくした しゃしん 3つえらんでね</p>
-        
+
         {errorMessage && (
           <p className="text-red-500 border border-red-300 bg-red-50 p-3 mb-4 text-sm rounded-xl text-center">
             {errorMessage}
@@ -209,8 +207,8 @@ function LoginStep2({ username, imageList, imageNames, onBack }: LoginStep2Props
                     src={path}
                     alt={`img-pw-${index}`}
                     className={`w-full aspect-square object-contain p-1 rounded-2xl border-4 transition-all duration-200 
-                      ${selectedIndices.includes(index) 
-                        ? "border-sky-400 ring-4 ring-sky-100 scale-105" 
+                      ${selectedIndices.includes(index)
+                        ? "border-sky-400 ring-4 ring-sky-100 scale-105"
                         : "border-slate-200 group-hover:border-sky-300 group-hover:scale-105"
                       }
                       ${isLoading || successMessage ? 'opacity-50' : ''}
@@ -236,7 +234,7 @@ function LoginStep2({ username, imageList, imageNames, onBack }: LoginStep2Props
 
         <hr className="my-6 border-slate-200" />
         <div className="text-center">
-          <button 
+          <button
             onClick={onBack}
             className="text-sm font-semibold text-sky-500 hover:text-sky-600 hover:underline disabled:text-slate-400 disabled:cursor-not-allowed disabled:no-underline"
             disabled={isLoading || !!successMessage}
@@ -260,26 +258,26 @@ interface LoginData {
 }
 
 export default function LoginPage() {
-    const [step, setStep] = useState(1);
-    const [loginData, setLoginData] = useState<LoginData | null>(null);
+  const [step, setStep] = useState(1);
+  const [loginData, setLoginData] = useState<LoginData | null>(null);
 
-    const handleUserChecked = (username: string, imageList: string[], imageNames: string[]) => {
-        setLoginData({ username, imageList, imageNames });
-        setStep(2);
-    };
+  const handleUserChecked = (username: string, imageList: string[], imageNames: string[]) => {
+    setLoginData({ username, imageList, imageNames });
+    setStep(2);
+  };
 
-    const handleBackToStep1 = () => {
-        setLoginData(null);
-        setStep(1);
-    }
+  const handleBackToStep1 = () => {
+    setLoginData(null);
+    setStep(1);
+  }
 
-    if (step === 1) {
-        return <LoginStep1 onUserChecked={handleUserChecked} />; 
-    }
-    
-    if (step === 2 && loginData) {
-        return <LoginStep2 {...loginData} onBack={handleBackToStep1} />;
-    }
+  if (step === 1) {
+    return <LoginStep1 onUserChecked={handleUserChecked} />;
+  }
 
-    return null; // Default fallback
+  if (step === 2 && loginData) {
+    return <LoginStep2 {...loginData} onBack={handleBackToStep1} />;
+  }
+
+  return null; // Default fallback
 }
