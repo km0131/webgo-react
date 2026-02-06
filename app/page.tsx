@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Html5Qrcode } from 'html5-qrcode';
+import jsQR from 'jsqr';
 
 // =================================================================
 // QR Code Scanner Modal
@@ -92,17 +93,50 @@ function QrScannerModal({ onScanSuccess, onClose }: QrScannerModalProps) {
   };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!scannerRef.current) return;
+    // インスタンスがなくてもファイル読み込みはjsQRで行うのでチェックを緩和しても良いが、
+    // モーダル全体のロジックとしてはスキャナーが準備できている前提でも問題ない。
     setError("");
 
     if (e.target.files && e.target.files.length > 0) {
       const file = e.target.files[0];
+
       try {
-        const result = await scannerRef.current.scanFile(file, true);
-        onScanSuccess(result);
+        const imageUrl = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = (evt) => resolve(evt.target?.result as string);
+          reader.onerror = (err) => reject(err);
+          reader.readAsDataURL(file);
+        });
+
+        const image = new Image();
+        image.src = imageUrl;
+        await new Promise((resolve) => {
+          image.onload = resolve;
+        });
+
+        const canvas = document.createElement("canvas");
+        canvas.width = image.width;
+        canvas.height = image.height;
+        const context = canvas.getContext("2d");
+
+        if (!context) {
+          throw new Error("Canvas Contextの取得に失敗しました");
+        }
+
+        context.drawImage(image, 0, 0);
+        const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+        const code = jsQR(imageData.data, imageData.width, imageData.height);
+
+        if (code) {
+          onScanSuccess(code.data);
+        } else {
+          console.log("jsQR code not found");
+          setError("QRコードが見つかりませんでした。別の写真を試してください。");
+        }
+
       } catch (err) {
-        console.error(err);
-        setError("QRコードが みつからなかったよ。べつの しゃしん で ためしてね。");
+        console.error("QR Scan Error:", err);
+        setError("画像の読み込みに失敗しました。別の写真を試してください。");
       }
     }
   };

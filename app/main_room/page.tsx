@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { useRouter } from 'next/navigation';
 
 // --- 型定義 ---
 type UserRole = 'teacher' | 'student';
@@ -20,11 +21,8 @@ interface ClassRoom {
 }
 
 // --- モックデータ ---
-const MOCK_USER: User = {
-    id: 'u1',
-    name: '山田 太郎',
-    role: 'teacher', // デフォルトは先生にしておく（テスト用）
-};
+// UserデータはAPIから取得するため削除
+
 
 const INITIAL_CLASSES: ClassRoom[] = [
     {
@@ -52,11 +50,38 @@ const INITIAL_CLASSES: ClassRoom[] = [
 
 export default function MainRoomPage() {
     // --- State ---
-    const [currentUser, setCurrentUser] = useState<User>(MOCK_USER);
+    const router = useRouter();
+    const [currentUser, setCurrentUser] = useState<User | null>(null);
     const [classes, setClasses] = useState<ClassRoom[]>(INITIAL_CLASSES);
     const [isMenuOpen, setIsMenuOpen] = useState(false);
+    const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [showJoinModal, setShowJoinModal] = useState(false);
+
+    // セッション取得
+    React.useEffect(() => {
+        const fetchSession = async () => {
+            try {
+                const res = await fetch('/api/session');
+                if (!res.ok) {
+                    throw new Error('セッションの取得に失敗しました');
+                }
+                const data = await res.json();
+                // Backend logic: user_teacher returns "teacher" or "student" string
+                const role = data.user_teacher === 'teacher' ? 'teacher' : 'student';
+
+                setCurrentUser({
+                    id: data.user_id,
+                    name: data.user_nam,
+                    role: role
+                });
+            } catch (error) {
+                console.error(error);
+                router.push('/');
+            }
+        };
+        fetchSession();
+    }, [router]);
 
     // 入力フォーム用State
     const [newClassName, setNewClassName] = useState('');
@@ -66,20 +91,35 @@ export default function MainRoomPage() {
     // --- Actions ---
 
     // クラス作成 (先生のみ)
-    const handleCreateClass = (e: React.FormEvent) => {
+    const handleCreateClass = async (e: React.FormEvent) => {
         e.preventDefault();
-        const newClass: ClassRoom = {
-            id: `c${Date.now()}`,
-            className: newClassName,
-            teacherName: currentUser.name,
-            description: newClassDesc,
-            themeColor: 'bg-indigo-600', // デフォルト色
-        };
-        setClasses([...classes, newClass]);
-        setNewClassName('');
-        setNewClassDesc('');
-        setShowCreateModal(false);
-        setIsMenuOpen(false);
+        if (!currentUser) return;
+
+        try {
+            const res = await fetch('/api/create_class', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    className: newClassName,
+                    description: newClassDesc,
+                }),
+            });
+
+            if (!res.ok) {
+                throw new Error('クラスの作成に失敗しました');
+            }
+
+            const data = await res.json();
+
+            alert(`作成しました！招待コードは ${data.course} です`);
+            window.location.reload();
+
+        } catch (error) {
+            console.error(error);
+            alert('クラスの作成に失敗しました');
+        }
     };
 
     // クラス参加 (全員)
@@ -91,23 +131,80 @@ export default function MainRoomPage() {
         setIsMenuOpen(false);
     };
 
-    // ロール切り替え (デモ用)
-    const toggleRole = () => {
-        setCurrentUser(prev => ({
-            ...prev,
-            role: prev.role === 'teacher' ? 'student' : 'teacher'
-        }));
+    // ログアウト
+    const handleLogout = () => {
+        router.push('/');
     };
+
+    if (!currentUser) {
+        return (
+            <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center">
+                <div className="text-gray-500 text-lg">読み込み中...</div>
+            </div>
+        );
+    }
 
     return (
         <div className="min-h-screen bg-gray-50 flex flex-col">
+            {/* --- Sidebar (Drawer) --- */}
+            {isSidebarOpen && (
+                <>
+                    <div
+                        className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200"
+                        onClick={() => setIsSidebarOpen(false)}
+                    ></div>
+                    <div className="fixed inset-y-0 left-0 z-50 w-64 bg-white shadow-2xl transform transition-transform duration-300 ease-in-out animate-in slide-in-from-left">
+                        <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+                            <h2 className="font-bold text-gray-700 flex items-center gap-2">
+                                <div className="w-8 h-8 bg-yellow-400 rounded-md flex items-center justify-center text-white font-bold text-lg">
+                                    A
+                                </div>
+                                AI Classroom
+                            </h2>
+                            <button
+                                onClick={() => setIsSidebarOpen(false)}
+                                className="p-1 rounded-full hover:bg-gray-200 text-gray-500 transition-colors"
+                            >
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+                        </div>
+
+                        <div className="p-4 flex flex-col h-[calc(100%-64px)] justify-between">
+                            <div className="space-y-1">
+                                <div className="px-4 py-2 text-sm text-gray-500 font-medium">
+                                    ようこそ、{currentUser.name} さん
+                                </div>
+                                {/* ここに他のメニュー項目を追加可能 */}
+                            </div>
+
+                            <div className="pt-4 border-t border-gray-100">
+                                <button
+                                    onClick={handleLogout}
+                                    className="flex items-center gap-3 w-full px-4 py-3 text-red-600 hover:bg-red-50 rounded-lg transition-colors font-medium"
+                                >
+                                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                                    </svg>
+                                    ログアウト
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </>
+            )}
+
             {/* --- Header --- */}
             <header className="bg-white border-b border-gray-200 sticky top-0 z-50">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
 
                     {/* Left: Branding & Hamburger */}
                     <div className="flex items-center gap-4">
-                        <button className="p-2 -ml-2 rounded-full hover:bg-gray-100 text-gray-600">
+                        <button
+                            onClick={() => setIsSidebarOpen(true)}
+                            className="p-2 -ml-2 rounded-full hover:bg-gray-100 text-gray-600"
+                        >
                             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
                             </svg>
@@ -124,13 +221,10 @@ export default function MainRoomPage() {
 
                     {/* Right: Actions & Profile */}
                     <div className="flex items-center gap-4">
-                        {/* デモ用ロール切り替えボタン */}
-                        <button
-                            onClick={toggleRole}
-                            className="text-xs px-3 py-1 bg-gray-200 rounded-full hover:bg-gray-300 transition-colors"
-                        >
-                            現在: {currentUser.role === 'teacher' ? '先生' : '生徒'} (切替)
-                        </button>
+                        {/* Role Badge */}
+                        <span className="text-xs px-3 py-1 bg-blue-50 text-blue-700 rounded-full font-medium border border-blue-100">
+                            {currentUser.role === 'teacher' ? '先生' : '生徒'}
+                        </span>
 
                         {/* Plus Button Menu */}
                         <div className="relative">
