@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
 // --- 型定義 ---
@@ -325,45 +326,67 @@ export default function MainRoomPage() {
                                     key={cls.id}
                                     className="group bg-white rounded-lg border border-gray-200 overflow-hidden hover:shadow-lg transition-all duration-200 flex flex-col h-72 cursor-pointer relative"
                                 >
-                                    {/* Card Header (Google Classroom Style) */}
-                                    <div className={`${validTheme} h-24 p-4 relative flex flex-col justify-between`}>
-                                        <div className="flex justify-between items-start">
-                                            <h2 className="text-xl text-white font-medium hover:underline truncate pr-8">
-                                                {cls.className}
-                                            </h2>
-                                            <button className="text-white opacity-80 hover:opacity-100 p-1 hover:bg-white/20 rounded-full transition-colors absolute right-2 top-2">
-                                                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                                                    <path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z" />
-                                                </svg>
-                                            </button>
-                                        </div>
-                                        <p className="text-white text-sm hover:underline truncate mb-1">
-                                            {cls.teacherName}
-                                        </p>
-                                    </div>
+                                    {/* Link wrapper for Header and Body */}
+                                    <div
+                                        onClick={() => {
+                                            const name = encodeURIComponent(cls.className);
+                                            const url = `/sub_room?id=${cls.id}&name=${name}`;
 
-                                    {/* Avatar (Floating) */}
-                                    <div className="absolute top-16 right-4 w-16 h-16 bg-white rounded-full p-1 shadow-md z-10">
-                                        <div className={`${validTheme} w-full h-full rounded-full flex items-center justify-center text-white text-2xl font-bold opacity-90`}>
-                                            {cls.teacherName ? cls.teacherName.charAt(0) : 'A'}
-                                        </div>
-                                    </div>
+                                            console.log("強制遷移先:", url);
 
-                                    {/* Card Body */}
-                                    <div className="p-4 pt-12 flex-1">
-                                        <p className="text-xs text-gray-500 line-clamp-3">
-                                            {cls.description}
-                                        </p>
+                                            // router.push ではなく、ブラウザの機能で強制移動
+                                            window.location.href = url;
+                                        }}
+                                        className="flex flex-col flex-1 cursor-pointer"
+                                    >
+                                        {/* Card Header (Google Classroom Style) */}
+                                        <div className={`${validTheme} h-24 p-4 relative flex flex-col justify-between`}>
+                                            <div className="flex justify-between items-start">
+                                                <h2 className="text-xl text-white font-medium hover:underline truncate pr-8">
+                                                    {cls.className}
+                                                </h2>
+                                                <div className="text-white opacity-80 hover:opacity-100 p-1 hover:bg-white/20 rounded-full transition-colors absolute right-2 top-2">
+                                                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                                                        <path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z" />
+                                                    </svg>
+                                                </div>
+                                            </div>
+                                            <p className="text-white text-sm hover:underline truncate mb-1">
+                                                {cls.teacherName}
+                                            </p>
+                                        </div>
+
+                                        {/* Avatar (Floating) */}
+                                        <div className="absolute top-16 right-4 w-16 h-16 bg-white rounded-full p-1 shadow-md z-10">
+                                            <div className={`${validTheme} w-full h-full rounded-full flex items-center justify-center text-white text-2xl font-bold opacity-90`}>
+                                                {cls.teacherName ? cls.teacherName.charAt(0) : 'A'}
+                                            </div>
+                                        </div>
+
+                                        {/* Card Body */}
+                                        <div className="p-4 pt-12 flex-1">
+                                            <p className="text-xs text-gray-500 line-clamp-3">
+                                                {cls.description}
+                                            </p>
+                                        </div>
                                     </div>
 
                                     {/* Card Footer */}
-                                    <div className="px-4 py-3 border-t border-gray-100 flex justify-end gap-1 bg-white">
-                                        <button className="p-2 text-gray-500 hover:bg-gray-100 rounded-full transition-colors" title="ワークフォルダを開く">
+                                    <div className="px-4 py-3 border-t border-gray-100 flex justify-end gap-1 bg-white relative z-20">
+                                        <button
+                                            onClick={(e) => { e.stopPropagation(); /* フォルダ開く処理 */ }}
+                                            className="p-2 text-gray-500 hover:bg-gray-100 rounded-full transition-colors"
+                                            title="ワークフォルダを開く"
+                                        >
                                             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 19a2 2 0 01-2-2V7a2 2 0 012-2h4l2 2h4a2 2 0 012 2v1M5 19h14a2 2 0 002-2v-5a2 2 0 00-2-2H9a2 2 0 00-2 2v5a2 2 0 01-2 2z" />
                                             </svg>
                                         </button>
-                                        <button className="p-2 text-gray-500 hover:bg-gray-100 rounded-full transition-colors" title="課題一覧">
+                                        <button
+                                            onClick={(e) => { e.stopPropagation(); /* 課題一覧処理 */ }}
+                                            className="p-2 text-gray-500 hover:bg-gray-100 rounded-full transition-colors"
+                                            title="課題一覧"
+                                        >
                                             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                                             </svg>
